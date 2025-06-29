@@ -1,0 +1,53 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.0'
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq imagemagick
+
+      - name: Read config.json
+        run: |
+          CONFIG=$(cat config.json)
+          echo "APP_NAME=$(echo $CONFIG | jq -r .app_name)" >> $GITHUB_ENV
+          echo "PACKAGE_NAME=$(echo $CONFIG | jq -r .package_name)" >> $GITHUB_ENV
+          echo "VERSION=$(echo $CONFIG | jq -r .version)" >> $GITHUB_ENV
+          echo "VERSION_NAME=$(echo $CONFIG | jq -r .version | cut -d'+' -f1)" >> $GITHUB_ENV
+          echo "VERSION_CODE=$(echo $CONFIG | jq -r .version | cut -d'+' -f2)" >> $GITHUB_ENV
+
+      - name: Replace {{APP_NAME}} in main.dart
+        run: |
+          sed -i "s/{{APP_NAME}}/${APP_NAME}/g" lib/main.dart
+
+      - name: Update version in pubspec.yaml
+        run: |
+          sed -i "s/^version:.*/version: ${VERSION}/" pubspec.yaml
+
+      - name: Flutter pub get
+        run: |
+          flutter pub get
+
+      - name: Build APK
+        run: |
+          flutter build apk --debug --split-per-abi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}
+          path: build/app/outputs/flutter-apk/*.apk
