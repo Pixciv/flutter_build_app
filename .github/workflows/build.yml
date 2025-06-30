@@ -19,7 +19,7 @@ jobs:
           flutter-version: '3.32.0'
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y jq imagemagick
+        run: sudo apt-get update && sudo apt-get install -y jq imagemagick zip
 
       - name: Read config.json
         run: |
@@ -38,13 +38,24 @@ jobs:
         run: |
           sed -i "s/^version:.*/version: ${VERSION}/" pubspec.yaml
 
-      - name: Flutter pub get
+      - name: Apply icon.png as Android app icon
         run: |
-          flutter pub get
+          mkdir -p android/app/src/main/res/mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}
+          convert icon.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          convert icon.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          convert icon.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          convert icon.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          convert icon.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+
+      - name: Enable Proguard for debug build
+        run: |
+          sed -i '/minifyEnabled/c\            minifyEnabled true' android/app/build.gradle || true
+
+      - name: Flutter pub get
+        run: flutter pub get
 
       - name: Build APK (split per abi)
-        run: |
-          flutter build apk --debug --split-per-abi
+        run: flutter build apk --debug --split-per-abi
 
       - name: Upload APK - armeabi-v7a
         uses: actions/upload-artifact@v4
@@ -63,3 +74,14 @@ jobs:
         with:
           name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-x86_64
           path: build/app/outputs/flutter-apk/app-x86_64-debug.apk
+
+      - name: Create ZIP of all APKs
+        run: |
+          cd build/app/outputs/flutter-apk
+          zip -r all_apks.zip ./*.apk
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-apks-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}
+          path: build/app/outputs/flutter-apk/all_apks.zip
