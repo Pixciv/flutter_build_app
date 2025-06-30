@@ -34,6 +34,10 @@ jobs:
         run: |
           sed -i "s/{{APP_NAME}}/${APP_NAME}/g" lib/main.dart
 
+      - name: Update Android app_name in strings.xml
+        run: |
+          sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_NAME}</string>|" android/app/src/main/res/values/strings.xml
+
       - name: Update version in pubspec.yaml
         run: |
           sed -i "s/^version:.*/version: ${VERSION}/" pubspec.yaml
