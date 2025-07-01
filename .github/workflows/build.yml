@@ -18,7 +18,7 @@ jobs:
         with:
           flutter-version: '3.32.0'
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y jq imagemagick zip
 
       - name: Run flutter pub outdated and save JSON
@@ -30,27 +30,46 @@ jobs:
             echo "Updating $package to ^$version"
             # Escape dots and slashes in version string for sed
             safe_version=$(echo "^$version" | sed 's/\./\\./g; s/\//\\\//g')
-            # Update version in pubspec.yaml
+            # Update version in pubspec.yaml, indented 2 spaces for dependencies
             sed -i "s|^  $package:.*|  $package: $safe_version|" pubspec.yaml
           done
           rm outdated.json
 
-      - name: Replace {{APP_NAME}} in lib/main.dart
+      - name: Read config.json variables
+        id: config
         run: |
-          # Assuming APP_NAME is set in config.json or default
-          if [ -f config.json ]; then
-            APP_NAME=$(jq -r .app_name config.json)
-          else
-            APP_NAME="MyFlutterApp"
-          fi
-          sed -i "s/{{APP_NAME}}/${APP_NAME}/g" lib/main.dart
+          echo "APP_NAME=$(jq -r .app_name config.json)" >> $GITHUB_ENV
+          echo "PACKAGE_NAME=$(jq -r .package_name config.json)" >> $GITHUB_ENV
+          echo "VERSION=$(jq -r .version config.json)" >> $GITHUB_ENV
+          echo "VERSION_NAME=$(echo $VERSION | cut -d'+' -f1)" >> $GITHUB_ENV
+          echo "VERSION_CODE=$(echo $VERSION | cut -d'+' -f2)" >> $GITHUB_ENV
+
+      - name: Replace {{APP_NAME}} in lib/main.dart
+        run: sed -i "s/{{APP_NAME}}/${APP_NAME}/g" lib/main.dart
 
       - name: Update Android app_name in strings.xml
+        run: sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_NAME}</string>|" android/app/src/main/res/values/strings.xml
+
+      - name: Update version in pubspec.yaml
+        run: sed -i "s/^version:.*/version: ${VERSION}/" pubspec.yaml
+
+      - name: Update namespace and applicationId in build.gradle.kts
         run: |
-          if [ -f config.json ]; then
-            APP_NAME=$(jq -r .app_name config.json)
-            sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_NAME}</string>|" android/app/src/main/res/values/strings.xml
-          fi
+          sed -i "s|namespace = \".*\"|namespace = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
+          sed -i "s|applicationId = \".*\"|applicationId = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
+          sed -i "s|minSdk = .*|minSdk = 23|" android/app/build.gradle.kts
+          sed -i "s|versionCode = .*|versionCode = ${VERSION_CODE}|" android/app/build.gradle.kts
+          sed -i "s|versionName = \".*\"|versionName = \"${VERSION_NAME}\"|" android/app/build.gradle.kts
+          sed -i "s|ndkVersion = .*|ndkVersion = \"27.0.12077973\"|" android/app/build.gradle.kts
+
+      - name: Apply icon.png as Android app icon (mipmap)
+        run: |
+          mkdir -p android/app/src/main/res/mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}
+          convert icon.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          convert icon.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          convert icon.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          convert icon.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          convert icon.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Flutter clean
         run: flutter clean
@@ -58,7 +77,7 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build APK (split per ABI)
+      - name: Build APK (split per ABI, debug)
         run: flutter build apk --debug --split-per-abi
 
       - name: Upload APK - armeabi-v7a
