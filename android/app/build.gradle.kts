@@ -29,11 +29,17 @@ android {
     }
 
     buildTypes {
-        release {
-            // Eğer release için debug imzası kullanıyorsan, ileride production için değiştir
-            signingConfig = signingConfigs.getByName("debug")
-            // Proguard/R8 için ayar burada (isteğe bağlı)
+        debug {
+            // Debug build için minify ve shrinkResources kapalı, böylece hata olmaz
             isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        release {
+            // Release için minify ve shrinkResources isteğe bağlı, örnek olarak açıldı
+            signingConfig = signingConfigs.getByName("debug") // bunu production için değiştir
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 }
