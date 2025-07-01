@@ -5,8 +5,8 @@ plugins {
 }
 
 android {
-    // Bu satır dinamik olarak sed ile güncellenecek
-    namespace = "com.kina.night" 
+    // namespace ve applicationId workflow içinde sed ile güncelleniyor
+    namespace = "com.kina.night"
 
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
@@ -17,11 +17,10 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = "11"
     }
 
     defaultConfig {
-        // Bu satır da sed ile güncellenecek
         applicationId = "com.kina.night"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -31,7 +30,10 @@ android {
 
     buildTypes {
         release {
+            // Eğer release için debug imzası kullanıyorsan, ileride production için değiştir
             signingConfig = signingConfigs.getByName("debug")
+            // Proguard/R8 için ayar burada (isteğe bağlı)
+            isMinifyEnabled = false
         }
     }
 }
