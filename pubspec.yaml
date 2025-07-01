@@ -1,6 +1,6 @@
 name: hello_flutter
 description: A new Flutter project.
-publish_to: 'none' # Bu satır paketin pub.dev'e yüklenmesini engeller
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  google_mobile_ads: 3.0.0 # NOT: 3.1.0 kullanırsan AGP hatası alırsın
+  google_mobile_ads: ^3.1.0
 
 dev_dependencies:
   flutter_test:
