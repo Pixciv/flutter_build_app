@@ -58,10 +58,13 @@ jobs:
 
       - name: Enable Proguard for debug build
         run: |
-          sed -i '/minifyEnabled/c\            minifyEnabled true' android/app/build.gradle.kts || true
+          sed -i '/minifyEnabled/c\            minifyEnabled false' android/app/build.gradle.kts || true
 
       - name: Flutter clean
         run: flutter clean
+
+      - name: Upgrade dependencies to latest compatible versions
+        run: flutter pub upgrade
 
       - name: Flutter pub get
         run: flutter pub get
