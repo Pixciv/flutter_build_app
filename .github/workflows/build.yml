@@ -42,6 +42,11 @@ jobs:
         run: |
           sed -i "s/^version:.*/version: ${VERSION}/" pubspec.yaml
 
+      - name: Update namespace and applicationId in build.gradle.kts
+        run: |
+          sed -i "s|namespace = \".*\"|namespace = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
+          sed -i "s|applicationId = \".*\"|applicationId = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
+
       - name: Apply icon.png as Android app icon
         run: |
           mkdir -p android/app/src/main/res/mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}
