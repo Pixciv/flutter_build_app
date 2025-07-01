@@ -9,7 +9,9 @@ android {
     namespace = "com.kina.night"
 
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+
+    // Hata çözümleri için sabit ndkVersion ekleniyor
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -22,7 +24,10 @@ android {
 
     defaultConfig {
         applicationId = "com.kina.night"
-        minSdk = flutter.minSdkVersion
+
+        // minSdk versiyonu 23 olarak yükseltildi
+        minSdk = 23
+
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -37,7 +42,7 @@ android {
         }
         release {
             // Release için minify ve shrinkResources isteğe bağlı, örnek olarak açıldı
-            signingConfig = signingConfigs.getByName("debug") // bunu production için değiştir
+            signingConfig = signingConfigs.getByName("debug") // production için değiştir
             isMinifyEnabled = true
             isShrinkResources = true
         }
