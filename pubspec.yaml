@@ -1,6 +1,6 @@
 name: hello_flutter
 description: A new Flutter project.
-publish_to: 'none'
+publish_to: 'none'  # Bu paket pub.dev'e yüklenmez
 version: 1.0.0+1
 
 environment:
@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  google_mobile_ads: 3.0.0 # ⚠️ 3.1.0 DEĞİL!!!
+  google_mobile_ads: 3.0.0  # 3.1.0 kullanma, namespace hatası var
 
 dev_dependencies:
   flutter_test:
@@ -19,3 +19,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+# -- Buraya override ekleyebilirsin --
+# dependency_overrides:
+#   google_mobile_ads:
+#     path: ads_override/google_mobile_ads
