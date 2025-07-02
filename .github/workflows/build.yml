@@ -1,5 +1,5 @@
 name: Build APK and Update Dependencies
- 
+
 on:
   push:
     branches: [ main ]
@@ -56,6 +56,13 @@ jobs:
           if [ -f config.json ]; then
             APP_NAME=$(jq -r .app_name config.json)
             sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_NAME}</string>|" android/app/src/main/res/values/strings.xml
+          fi
+
+      - name: Update version in pubspec.yaml
+        run: |
+          if [ -f config.json ]; then
+            VERSION=$(jq -r .version config.json)
+            sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
           fi
 
       - name: Update android/app/build.gradle.kts with dynamic values and fixes
