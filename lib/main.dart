@@ -45,9 +45,11 @@ class _MyHomePageState extends State<MyHomePage> {
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (_) => setState(() {
-          _isBannerAdReady = true;
-        }),
+        onAdLoaded: (_) {
+          setState(() {
+            _isBannerAdReady = true;
+          });
+        },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
           print('Banner reklam yüklenemedi: $error');
@@ -106,42 +108,47 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.appName),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _num1Controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: '1. Sayı'),
-            ),
-            TextField(
-              controller: _num2Controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: '2. Sayı'),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              children: [
-                ElevatedButton(onPressed: () => _calculate('+'), child: Text('+')),
-                ElevatedButton(onPressed: () => _calculate('-'), child: Text('-')),
-                ElevatedButton(onPressed: () => _calculate('×'), child: Text('×')),
-                ElevatedButton(onPressed: () => _calculate('÷'), child: Text('÷')),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(_result, style: TextStyle(fontSize: 20)),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _isBannerAdReady
-          ? Container(
+      body: Column(
+        children: [
+          if (_isBannerAdReady)
+            Container(
               width: _bannerAd.size.width.toDouble(),
               height: _bannerAd.size.height.toDouble(),
               child: AdWidget(ad: _bannerAd),
-            )
-          : SizedBox.shrink(),
+            ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _num1Controller,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: '1. Sayı'),
+                  ),
+                  TextField(
+                    controller: _num2Controller,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: '2. Sayı'),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 10,
+                    children: [
+                      ElevatedButton(onPressed: () => _calculate('+'), child: Text('+')),
+                      ElevatedButton(onPressed: () => _calculate('-'), child: Text('-')),
+                      ElevatedButton(onPressed: () => _calculate('×'), child: Text('×')),
+                      ElevatedButton(onPressed: () => _calculate('÷'), child: Text('÷')),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(_result, style: TextStyle(fontSize: 20)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
