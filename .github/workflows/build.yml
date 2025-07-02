@@ -94,7 +94,7 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build APK (release, minified, split per ABI)
+      - name: Build APK (release, minify enabled, split per ABI)
         run: flutter build apk --release --split-per-abi
 
       - name: Upload APK - armeabi-v7a
