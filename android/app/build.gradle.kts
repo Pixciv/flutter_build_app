@@ -28,7 +28,9 @@ android {
         // minSdk versiyonu 23 olarak yükseltildi
         minSdk = 23
 
-        targetSdk = flutter.targetSdkVersion
+        // targetSdk sabit 35 olarak ayarlandı (workflow'ta sed ile değiştirilmesin)
+        targetSdk = 35
+
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
