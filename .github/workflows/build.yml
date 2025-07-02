@@ -1,128 +1,150 @@
-name: Build APK and Update Dependencies
+import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize(); // AdMob'u başlat
+  runApp(MyApp());
+}
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+class MyApp extends StatelessWidget {
+  final String appName = '{{APP_NAME}}'; // sed ile değiştirilecek
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: appName,
+      home: MyHomePage(appName: appName),
+    );
+  }
+}
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.32.0'
+class MyHomePage extends StatefulWidget {
+  final String appName;
 
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y jq imagemagick zip
+  const MyHomePage({Key? key, required this.appName}) : super(key: key);
 
-      - name: Read config.json
-        run: |
-          CONFIG=$(cat config.json)
-          echo "APP_NAME=$(echo $CONFIG | jq -r .app_name)" >> $GITHUB_ENV
-          echo "PACKAGE_NAME=$(echo $CONFIG | jq -r .package_name)" >> $GITHUB_ENV
-          echo "VERSION=$(echo $CONFIG | jq -r .version)" >> $GITHUB_ENV
-          echo "VERSION_NAME=$(echo $CONFIG | jq -r .version | cut -d'+' -f1)" >> $GITHUB_ENV
-          echo "VERSION_CODE=$(echo $CONFIG | jq -r .version | cut -d'+' -f2)" >> $GITHUB_ENV
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
 
-      - name: Remove package attribute from AndroidManifest.xml
-        run: sed -i 's/package="[^"]*"//' android/app/src/main/AndroidManifest.xml
+class _MyHomePageState extends State<MyHomePage> {
+  late BannerAd _bannerAd;
+  bool _isBannerAdReady = false;
 
-      - name: Run flutter pub outdated and save JSON
-        run: flutter pub outdated --json > outdated.json
+  final TextEditingController _num1Controller = TextEditingController();
+  final TextEditingController _num2Controller = TextEditingController();
+  String _result = '';
 
-      - name: Update pubspec.yaml with latest compatible versions
-        run: |
-          cat outdated.json | jq -r '.packages[] | select(.upgradable) | "\(.package) \(.latest.version)"' | while read package version; do
-            echo "Updating $package to ^$version"
-            safe_version=$(echo "^$version" | sed 's/\./\\./g; s/\//\\\//g')
-            sed -i "s|^  $package:.*|  $package: $safe_version|" pubspec.yaml
-          done
-          rm outdated.json
+  @override
+  void initState() {
+    super.initState();
 
-      - name: Replace {{APP_NAME}} in lib/main.dart
-        run: |
-          APP_NAME=$(jq -r .app_name config.json)
-          sed -i "s/{{APP_NAME}}/${APP_NAME}/g" lib/main.dart
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Test Banner ID
+      size: AdSize.banner,
+      request: AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          setState(() {
+            _isBannerAdReady = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          print('Banner reklam yüklenemedi: $error');
+        },
+      ),
+    );
 
-      - name: Update Android app_name in strings.xml
-        run: |
-          APP_NAME=$(jq -r .app_name config.json)
-          sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_NAME}</string>|" android/app/src/main/res/values/strings.xml
+    _bannerAd.load();
+  }
 
-      - name: Update version in pubspec.yaml
-        run: |
-          VERSION=$(jq -r .version config.json)
-          sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
+  @override
+  void dispose() {
+    _bannerAd.dispose();
+    _num1Controller.dispose();
+    _num2Controller.dispose();
+    super.dispose();
+  }
 
-      - name: Update android/app/build.gradle.kts with dynamic values and fixes
-        run: |
-          sed -i "s|namespace = \".*\"|namespace = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
-          sed -i "s|applicationId = \".*\"|applicationId = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
-          sed -i "s|minSdk = .*|minSdk = 23|" android/app/build.gradle.kts
-          sed -i "s|targetSdk = .*|targetSdk = 35|" android/app/build.gradle.kts
-          sed -i "s|versionCode = .*|versionCode = ${VERSION_CODE}|" android/app/build.gradle.kts
-          sed -i "s|versionName = \".*\"|versionName = \"${VERSION_NAME}\"|" android/app/build.gradle.kts
-          sed -i "s|ndkVersion = .*|ndkVersion = \"27.0.12077973\"|" android/app/build.gradle.kts
+  void _calculate(String operation) {
+    final double? num1 = double.tryParse(_num1Controller.text);
+    final double? num2 = double.tryParse(_num2Controller.text);
 
-      - name: Move MainActivity.kt to match package name
-        run: |
-          PACKAGE_NAME=$(jq -r .package_name config.json)
-          PACKAGE_PATH=$(echo "$PACKAGE_NAME" | tr '.' '/')
-          SRC_PATH="android/app/src/main/kotlin"
-          CURRENT_PATH=$(find $SRC_PATH -type f -name "MainActivity.kt" | head -n 1)
-          mkdir -p "$SRC_PATH/$PACKAGE_PATH"
-          mv "$CURRENT_PATH" "$SRC_PATH/$PACKAGE_PATH/MainActivity.kt"
-          sed -i "s|^package .*|package $PACKAGE_NAME|" "$SRC_PATH/$PACKAGE_PATH/MainActivity.kt"
+    if (num1 == null || num2 == null) {
+      setState(() => _result = 'Geçersiz sayı');
+      return;
+    }
 
-      - name: Apply icon.png as Android app icon
-        run: |
-          mkdir -p android/app/src/main/res/mipmap-mdpi android/app/src/main/res/mipmap-hdpi android/app/src/main/res/mipmap-xhdpi android/app/src/main/res/mipmap-xxhdpi android/app/src/main/res/mipmap-xxxhdpi
-          convert icon.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-          convert icon.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-          convert icon.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          convert icon.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          convert icon.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+    double res;
+    switch (operation) {
+      case '+':
+        res = num1 + num2;
+        break;
+      case '-':
+        res = num1 - num2;
+        break;
+      case '×':
+        res = num1 * num2;
+        break;
+      case '÷':
+        if (num2 == 0) {
+          setState(() => _result = 'Sıfıra bölünemez');
+          return;
+        }
+        res = num1 / num2;
+        break;
+      default:
+        res = 0;
+    }
 
-      - name: Flutter clean
-        run: flutter clean
+    setState(() => _result = 'Sonuç: $res');
+  }
 
-      - name: Flutter pub get
-        run: flutter pub get
-
-      - name: Build APK (release, minified, split per ABI)
-        run: flutter build apk --release --split-per-abi
-
-      - name: Upload APK - armeabi-v7a
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-armeabi-v7a-release
-          path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-
-      - name: Upload APK - arm64-v8a
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-arm64-v8a-release
-          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-
-      - name: Upload APK - x86_64
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-x86_64-release
-          path: build/app/outputs/flutter-apk/app-x86_64-release.apk
-
-      - name: Create ZIP of all APKs
-        run: |
-          cd build/app/outputs/flutter-apk
-          zip -r all_apks.zip ./*.apk
-
-      - name: Upload ZIP artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: all-apks-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}
-          path: build/app/outputs/flutter-apk/all_apks.zip
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.appName),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _num1Controller,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: '1. Sayı'),
+            ),
+            TextField(
+              controller: _num2Controller,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: '2. Sayı'),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              children: [
+                ElevatedButton(onPressed: () => _calculate('+'), child: Text('+')),
+                ElevatedButton(onPressed: () => _calculate('-'), child: Text('-')),
+                ElevatedButton(onPressed: () => _calculate('×'), child: Text('×')),
+                ElevatedButton(onPressed: () => _calculate('÷'), child: Text('÷')),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(_result, style: TextStyle(fontSize: 20)),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _isBannerAdReady
+          ? Container(
+              color: Colors.transparent,
+              width: _bannerAd.size.width.toDouble(),
+              height: _bannerAd.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd),
+            )
+          : SizedBox.shrink(),
+    );
+  }
+}
