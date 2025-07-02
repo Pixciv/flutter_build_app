@@ -30,15 +30,26 @@ jobs:
           echo "VERSION_NAME=$(echo $CONFIG | jq -r .version | cut -d'+' -f1)" >> $GITHUB_ENV
           echo "VERSION_CODE=$(echo $CONFIG | jq -r .version | cut -d'+' -f2)" >> $GITHUB_ENV
 
-      - name: Remove package attribute from AndroidManifest.xml (required for AGP 8+)
+      - name: Remove deprecated package attribute from AndroidManifest.xml
         run: |
           sed -i 's/package="[^"]*"//' android/app/src/main/AndroidManifest.xml
 
-      - name: Run flutter pub outdated and save JSON
-        run: flutter pub outdated --json > outdated.json
-
-      - name: Update pubspec.yaml with latest compatible versions
+      - name: Create MainActivity if not exists
         run: |
+          PACKAGE_PATH=$(echo $PACKAGE_NAME | sed 's/\./\//g')
+          MAIN_ACTIVITY_FILE="android/app/src/main/kotlin/${PACKAGE_PATH}/MainActivity.kt"
+          mkdir -p "$(dirname $MAIN_ACTIVITY_FILE)"
+          cat <<EOF > $MAIN_ACTIVITY_FILE
+package $PACKAGE_NAME
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity: FlutterActivity() {}
+EOF
+
+      - name: Update pubspec.yaml dependencies
+        run: |
+          flutter pub outdated --json > outdated.json
           cat outdated.json | jq -r '.packages[] | select(.upgradable) | "\(.package) \(.latest.version)"' | while read package version; do
             echo "Updating $package to ^$version"
             safe_version=$(echo "^$version" | sed 's/\./\\./g; s/\//\\\//g')
@@ -46,30 +57,19 @@ jobs:
           done
           rm outdated.json
 
-      - name: Replace {{APP_NAME}} in lib/main.dart
+      - name: Replace {{APP_NAME}} in Dart
         run: |
-          if [ -f config.json ]; then
-            APP_NAME=$(jq -r .app_name config.json)
-          else
-            APP_NAME="MyFlutterApp"
-          fi
           sed -i "s/{{APP_NAME}}/${APP_NAME}/g" lib/main.dart
 
-      - name: Update Android app_name in strings.xml
+      - name: Update Android app_name
         run: |
-          if [ -f config.json ]; then
-            APP_NAME=$(jq -r .app_name config.json)
-            sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_NAME}</string>|" android/app/src/main/res/values/strings.xml
-          fi
+          sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_NAME}</string>|" android/app/src/main/res/values/strings.xml
 
-      - name: Update version in pubspec.yaml
+      - name: Update pubspec version
         run: |
-          if [ -f config.json ]; then
-            VERSION=$(jq -r .version config.json)
-            sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
-          fi
+          sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
 
-      - name: Update android/app/build.gradle.kts with dynamic values and fixes
+      - name: Update android/app/build.gradle.kts
         run: |
           sed -i "s|namespace = \".*\"|namespace = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
           sed -i "s|applicationId = \".*\"|applicationId = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
@@ -79,14 +79,14 @@ jobs:
           sed -i "s|versionName = \".*\"|versionName = \"${VERSION_NAME}\"|" android/app/build.gradle.kts
           sed -i "s|ndkVersion = .*|ndkVersion = \"27.0.12077973\"|" android/app/build.gradle.kts
 
-      - name: Apply icon.png as Android app icon
+      - name: Apply app icon from icon.png
         run: |
-          mkdir -p android/app/src/main/res/mipmap-mdpi android/app/src/main/res/mipmap-hdpi android/app/src/main/res/mipmap-xhdpi android/app/src/main/res/mipmap-xxhdpi android/app/src/main/res/mipmap-xxxhdpi
-          convert icon.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-          convert icon.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-          convert icon.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          convert icon.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          convert icon.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          for dpi in mdpi 48 hdpi 72 xhdpi 96 xxhdpi 144 xxxhdpi 192; do
+            folder=$(echo $dpi | cut -d' ' -f1)
+            size=$(echo $dpi | cut -d' ' -f2)
+            mkdir -p android/app/src/main/res/mipmap-${folder}
+            convert icon.png -resize ${size}x${size} android/app/src/main/res/mipmap-${folder}/ic_launcher.png
+          done
 
       - name: Flutter clean
         run: flutter clean
@@ -94,28 +94,17 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build APK (release, minify enabled, split per ABI)
+      - name: Build APK with split ABI and Proguard (Release)
         run: flutter build apk --release --split-per-abi
 
-      - name: Upload APK - armeabi-v7a
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-armeabi-v7a-release
-          path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}
+          path: |
+            build/app/outputs/flutter-apk/*.apk
 
-      - name: Upload APK - arm64-v8a
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-arm64-v8a-release
-          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-
-      - name: Upload APK - x86_64
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-x86_64-release
-          path: build/app/outputs/flutter-apk/app-x86_64-release.apk
-
-      - name: Create ZIP of all APKs
+      - name: Create ZIP of APKs
         run: |
           cd build/app/outputs/flutter-apk
           zip -r all_apks.zip ./*.apk
