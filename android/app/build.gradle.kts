@@ -43,10 +43,18 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
-            // Release için minify ve shrinkResources isteğe bağlı, örnek olarak açıldı
-            signingConfig = signingConfigs.getByName("debug") // production için değiştir
+            // Release için minify ve shrinkResources açıldı
             isMinifyEnabled = true
             isShrinkResources = true
+            // Proguard dosyaları eklenmeli:
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            // Burada release için kendi imzanı kullanmalısın:
+            // signingConfig = signingConfigs.getByName("release")
+            // Şu an debug imzası kullanılıyor, Google Play için release imzası ayarla!
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
