@@ -31,8 +31,7 @@ jobs:
           echo "VERSION_CODE=$(echo $CONFIG | jq -r .version | cut -d'+' -f2)" >> $GITHUB_ENV
 
       - name: Remove package attribute from AndroidManifest.xml
-        run: |
-          sed -i 's/package="[^"]*"//' android/app/src/main/AndroidManifest.xml
+        run: sed -i 's/package="[^"]*"//' android/app/src/main/AndroidManifest.xml
 
       - name: Run flutter pub outdated and save JSON
         run: flutter pub outdated --json > outdated.json
@@ -48,17 +47,20 @@ jobs:
 
       - name: Replace {{APP_NAME}} in lib/main.dart
         run: |
+          APP_NAME=$(jq -r .app_name config.json)
           sed -i "s/{{APP_NAME}}/${APP_NAME}/g" lib/main.dart
 
       - name: Update Android app_name in strings.xml
         run: |
+          APP_NAME=$(jq -r .app_name config.json)
           sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_NAME}</string>|" android/app/src/main/res/values/strings.xml
 
       - name: Update version in pubspec.yaml
         run: |
+          VERSION=$(jq -r .version config.json)
           sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
 
-      - name: Update android/app/build.gradle.kts
+      - name: Update android/app/build.gradle.kts with dynamic values and fixes
         run: |
           sed -i "s|namespace = \".*\"|namespace = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
           sed -i "s|applicationId = \".*\"|applicationId = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
@@ -68,21 +70,23 @@ jobs:
           sed -i "s|versionName = \".*\"|versionName = \"${VERSION_NAME}\"|" android/app/build.gradle.kts
           sed -i "s|ndkVersion = .*|ndkVersion = \"27.0.12077973\"|" android/app/build.gradle.kts
 
-      - name: Apply app icon from icon.png
+      - name: Move MainActivity.kt to match package name
         run: |
-          mkdir -p android/app/src/main/res/mipmap-mdpi
+          PACKAGE_NAME=$(jq -r .package_name config.json)
+          PACKAGE_PATH=$(echo "$PACKAGE_NAME" | tr '.' '/')
+          SRC_PATH="android/app/src/main/kotlin"
+          CURRENT_PATH=$(find $SRC_PATH -type f -name "MainActivity.kt" | head -n 1)
+          mkdir -p "$SRC_PATH/$PACKAGE_PATH"
+          mv "$CURRENT_PATH" "$SRC_PATH/$PACKAGE_PATH/MainActivity.kt"
+          sed -i "s|^package .*|package $PACKAGE_NAME|" "$SRC_PATH/$PACKAGE_PATH/MainActivity.kt"
+
+      - name: Apply icon.png as Android app icon
+        run: |
+          mkdir -p android/app/src/main/res/mipmap-mdpi android/app/src/main/res/mipmap-hdpi android/app/src/main/res/mipmap-xhdpi android/app/src/main/res/mipmap-xxhdpi android/app/src/main/res/mipmap-xxxhdpi
           convert icon.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-
-          mkdir -p android/app/src/main/res/mipmap-hdpi
           convert icon.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-
-          mkdir -p android/app/src/main/res/mipmap-xhdpi
           convert icon.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-
-          mkdir -p android/app/src/main/res/mipmap-xxhdpi
           convert icon.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-
-          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
           convert icon.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Flutter clean
@@ -91,7 +95,7 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build APK (release, split per ABI)
+      - name: Build APK (release, minified, split per ABI)
         run: flutter build apk --release --split-per-abi
 
       - name: Upload APK - armeabi-v7a
