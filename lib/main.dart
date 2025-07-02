@@ -8,7 +8,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  final String appName = '{{APP_NAME}}'; // sed ile değiştirilecek
+  final String appName = '{{APP_NAME}}'; // Bu metin sed ile değiştirilecek
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +32,6 @@ class _MyHomePageState extends State<MyHomePage> {
   late BannerAd _bannerAd;
   bool _isBannerAdReady = false;
 
-  final TextEditingController _num1Controller = TextEditingController();
-  final TextEditingController _num2Controller = TextEditingController();
-  String _result = '';
-
   @override
   void initState() {
     super.initState();
@@ -45,11 +41,9 @@ class _MyHomePageState extends State<MyHomePage> {
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (_) {
-          setState(() {
-            _isBannerAdReady = true;
-          });
-        },
+        onAdLoaded: (_) => setState(() {
+          _isBannerAdReady = true;
+        }),
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
           print('Banner reklam yüklenemedi: $error');
@@ -63,43 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     _bannerAd.dispose();
-    _num1Controller.dispose();
-    _num2Controller.dispose();
     super.dispose();
-  }
-
-  void _calculate(String operation) {
-    final double? num1 = double.tryParse(_num1Controller.text);
-    final double? num2 = double.tryParse(_num2Controller.text);
-
-    if (num1 == null || num2 == null) {
-      setState(() => _result = 'Geçersiz sayı');
-      return;
-    }
-
-    double res;
-    switch (operation) {
-      case '+':
-        res = num1 + num2;
-        break;
-      case '-':
-        res = num1 - num2;
-        break;
-      case '×':
-        res = num1 * num2;
-        break;
-      case '÷':
-        if (num2 == 0) {
-          setState(() => _result = 'Sıfıra bölünemez');
-          return;
-        }
-        res = num1 / num2;
-        break;
-      default:
-        res = 0;
-    }
-
-    setState(() => _result = 'Sonuç: $res');
   }
 
   @override
@@ -108,42 +66,21 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.appName),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _num1Controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: '1. Sayı'),
-            ),
-            TextField(
-              controller: _num2Controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: '2. Sayı'),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              children: [
-                ElevatedButton(onPressed: () => _calculate('+'), child: Text('+')),
-                ElevatedButton(onPressed: () => _calculate('-'), child: Text('-')),
-                ElevatedButton(onPressed: () => _calculate('×'), child: Text('×')),
-                ElevatedButton(onPressed: () => _calculate('÷'), child: Text('÷')),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(_result, style: TextStyle(fontSize: 20)),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _isBannerAdReady
-          ? Container(
+      body: Column(
+        children: [
+          if (_isBannerAdReady)
+            Container(
               width: _bannerAd.size.width.toDouble(),
               height: _bannerAd.size.height.toDouble(),
               child: AdWidget(ad: _bannerAd),
-            )
-          : SizedBox.shrink(),
+            ),
+          Expanded(
+            child: Center(
+              child: Text('Welcome to ${widget.appName}!'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
