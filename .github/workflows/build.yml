@@ -70,7 +70,7 @@ jobs:
           sed -i "s|namespace = \".*\"|namespace = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
           sed -i "s|applicationId = \".*\"|applicationId = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
           sed -i "s|minSdk = .*|minSdk = 23|" android/app/build.gradle.kts
-          sed -i "s|targetSdk = .*|targetSdk = 33|" android/app/build.gradle.kts
+          sed -i "s|targetSdk = .*|targetSdk = 35|" android/app/build.gradle.kts
           sed -i "s|versionCode = .*|versionCode = ${VERSION_CODE}|" android/app/build.gradle.kts
           sed -i "s|versionName = \".*\"|versionName = \"${VERSION_NAME}\"|" android/app/build.gradle.kts
           sed -i "s|ndkVersion = .*|ndkVersion = \"27.0.12077973\"|" android/app/build.gradle.kts
