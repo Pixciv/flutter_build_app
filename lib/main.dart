@@ -8,7 +8,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  final String appName = '{{APP_NAME}}'; // Bu metin sed ile değiştirilecek
+  final String appName = '{{APP_NAME}}'; // sed ile değiştirilecek
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Test Banner ID
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Test ID
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
@@ -63,27 +63,32 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.appName),
-      ),
-      body: Column(
-        children: [
-          if (_isBannerAdReady)
-            Container(
-              margin: const EdgeInsets.only(top: 8.0), // AppBar ile arasına boşluk
-              width: _bannerAd.size.width.toDouble(),
-              height: _bannerAd.size.height.toDouble(),
-              child: AdWidget(ad: _bannerAd),
-            ),
-          Expanded(
-            child: Center(
-              child: Text(
-                'Welcome to ${widget.appName}!',
-                style: TextStyle(fontSize: 18),
+      // AppBar yok çünkü içerik SafeArea içinde başlıyor
+      body: SafeArea(
+        child: Column(
+          children: [
+            if (_isBannerAdReady)
+              Container(
+                width: _bannerAd.size.width.toDouble(),
+                height: _bannerAd.size.height.toDouble(),
+                child: AdWidget(ad: _bannerAd),
+              ),
+            Expanded(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Welcome to ${widget.appName}!',
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                  // Buraya başka içerikler ekleyebilirsin
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
