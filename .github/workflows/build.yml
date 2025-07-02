@@ -30,6 +30,10 @@ jobs:
           echo "VERSION_NAME=$(echo $CONFIG | jq -r .version | cut -d'+' -f1)" >> $GITHUB_ENV
           echo "VERSION_CODE=$(echo $CONFIG | jq -r .version | cut -d'+' -f2)" >> $GITHUB_ENV
 
+      - name: Remove package attribute from AndroidManifest.xml (required for AGP 8+)
+        run: |
+          sed -i 's/package="[^"]*"//' android/app/src/main/AndroidManifest.xml
+
       - name: Run flutter pub outdated and save JSON
         run: flutter pub outdated --json > outdated.json
 
@@ -90,7 +94,7 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build APK (release, split per ABI, minify enabled)
+      - name: Build APK (release, minified, split per ABI)
         run: flutter build apk --release --split-per-abi
 
       - name: Upload APK - armeabi-v7a
