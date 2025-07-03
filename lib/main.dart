@@ -25,11 +25,12 @@ class _LocalHtmlWebViewState extends State<LocalHtmlWebView> {
   void initState() {
     super.initState();
 
-    // Android için WebView platformunu ayarla
+    // Android için platforma özel WebView ayarla
     if (Platform.isAndroid) {
-      WebView.platform = SurfaceAndroidWebView();
+      WebView.platform = const SurfaceAndroidWebView();
     }
 
+    // WebView controller'ı oluştur
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted);
   }
@@ -37,15 +38,15 @@ class _LocalHtmlWebViewState extends State<LocalHtmlWebView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    loadLocalHtml();
+    loadLocalHtml(); // HTML'yi yükle
   }
 
   void loadLocalHtml() async {
-    final String fileHtml =
+    final htmlContent =
         await DefaultAssetBundle.of(context).loadString('assets/web/index.html');
 
     final uri = Uri.dataFromString(
-      fileHtml,
+      htmlContent,
       mimeType: 'text/html',
       encoding: Encoding.getByName('utf-8'),
     );
