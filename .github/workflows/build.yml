@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:collection'; // For Queue
 import 'package:flutter/services.dart'; // For SystemChrome
-import 'package:shared_preferences/shared_preferences.dart'; // Make sure this is in your pubspec.yaml
+import 'package:shared_preferences/shared_preferences.dart'; // Ensure this is in your pubspec.yaml
 
 // If you want to play audio, add audioplayers to your pubspec.yaml
 // import 'package:audioplayers/audioplayers.dart';
@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
       title: 'Bubble Shooter',
       theme: ThemeData(
         brightness: Brightness.dark, // Dark theme for the game
-        // If you want to use the 'Tomorrow' font, you'll need to add it to your assets
+        // If you want to use a custom font like 'Tomorrow', you'll need to add it to your assets
         // and declare it in your pubspec.yaml under the 'flutter: fonts:' section.
         // For now, we'll use the default font.
         // fontFamily: 'Tomorrow',
@@ -227,8 +227,8 @@ const List<Color> kBallColors = [
 final List<Color> kFrameColors = [
   Colors.yellow,
   Colors.cyan,
-  // Corrected: Colors.magenta does not exist, use a direct Color or Colors.pink
-  const Color(0xFFFF00FF), // Magenta equivalent
+  // Corrected: Colors.magenta does not exist. Using a direct Color or Colors.pink.
+  const Color(0xFFFF00FF), // This is a common hex for magenta
   Colors.green,
 ];
 
@@ -1092,27 +1092,3 @@ class GamePainter extends CustomPainter {
     return true;
   }
 }
-
-// A simple Queue implementation (dart:collection already has one, but this is fine)
-// Using `dart:collection`'s `Queue` is generally preferred.
-// If you don't use `dart:collection`, you'd use this custom one.
-/*
-class Queue<T> {
-  final List<T> _elements = [];
-
-  void add(T element) {
-    _elements.add(element);
-  }
-
-  T removeFirst() {
-    if (_elements.isEmpty) {
-      throw StateError('Cannot remove from an empty queue');
-    }
-    return _elements.removeAt(0);
-  }
-
-  bool get isEmpty => _elements.isEmpty;
-  bool get isNotEmpty => _elements.isNotEmpty;
-  int get length => _elements.length;
-}
-*/
