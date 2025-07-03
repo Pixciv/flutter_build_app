@@ -10,8 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  google_mobile_ads: 3.0.0  # 3.1.0 kullanma, namespace hatası var
-  webview_flutter: ^4.2.2   # 4.7.0 sürümü bazı cihazlarda sorun çıkarabilir
+  google_mobile_ads: 3.0.0       # 3.1.0 namespace hatası veriyor
+  webview_flutter: ^4.2.2        # Kararlı sürüm
+  webview_flutter_android: ^3.10.0 # SurfaceAndroidWebView için şart
 
 dev_dependencies:
   flutter_test:
