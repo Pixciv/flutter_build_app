@@ -1,45 +1,35 @@
-import 'dart:async'; import 'dart:math'; import 'dart:ui' as ui; import 'package:flutter/material.dart'; import 'package:flutter/scheduler.dart'; import 'package:image_picker/image_picker.dart';
+import 'dart:async'; import 'dart:math'; import 'dart:ui' as ui; import 'package:flutter/material.dart';
 
-void main() { runApp(const GameApp()); }
+void main() => runApp(const MaterialApp(home: PhotoPopGame()));
 
-class GameApp extends StatelessWidget { const GameApp({super.key});
+class PhotoPopGame extends StatefulWidget { const PhotoPopGame({Key? key}) : super(key: key); @override State<PhotoPopGame> createState() => _PhotoPopGameState(); }
 
-@override Widget build(BuildContext context) { return MaterialApp( title: 'Balls of Explode', debugShowCheckedModeBanner: false, home: const GameHomePage(), ); } }
+class _PhotoPopGameState extends State<PhotoPopGame> with SingleTickerProviderStateMixin { late AnimationController _controller; late List<Ball> balls; final int numBalls = 20; late double screenWidth; late double screenHeight;
 
-class GameHomePage extends StatefulWidget { const GameHomePage({super.key});
+@override void initState() { super.initState(); controller = AnimationController( vsync: this, duration: const Duration(seconds: 1000), )..addListener(() { updateBalls(); }); balls = []; WidgetsBinding.instance.addPostFrameCallback(() => initBalls()); _controller.repeat(); }
 
-@override State<GameHomePage> createState() => _GameHomePageState(); }
+void initBalls() { final rand = Random(); screenWidth = MediaQuery.of(context).size.width; screenHeight = MediaQuery.of(context).size.height; balls = List.generate(numBalls, (i) { return Ball( x: rand.nextDouble() * screenWidth, y: rand.nextDouble() * screenHeight / 2, dx: rand.nextDouble() * 4 - 2, dy: rand.nextDouble() * 4 - 2, radius: 20 + rand.nextDouble() * 10, color: Colors.primaries[i % Colors.primaries.length], ); }); }
 
-class _GameHomePageState extends State<GameHomePage> with SingleTickerProviderStateMixin { late Ticker _ticker; int fps = 0; int _frameCount = 0; late DateTime _lastFpsUpdate; List<ui.Image> images = []; final List<Ball> balls = []; final picker = ImagePicker(); final Random _random = Random();
+void updateBalls() { for (var ball in balls) { ball.x += ball.dx; ball.y += ball.dy;
 
-@override void initState() { super.initState(); _lastFpsUpdate = DateTime.now(); _ticker = createTicker(_onTick)..start(); _loadDefaultBalls(); }
+if (ball.x < 0 || ball.x > screenWidth) ball.dx *= -1;
+  if (ball.y < 0 || ball.y > screenHeight) ball.dy *= -1;
+}
+setState(() {});
 
-Future<void> _loadDefaultBalls() async { // Şimdilik boş top listesi ile başlıyoruz for (int i = 0; i < 4; i++) { balls.add(Ball(x: 50.0 * (i + 1), y: 100, vx: _random.nextDouble() * 4 - 2, vy: _random.nextDouble() * 4 - 2)); } }
+}
 
-void _onTick(Duration elapsed) { setState(() { for (var ball in balls) { ball.update(MediaQuery.of(context).size); } _frameCount++; final now = DateTime.now(); if (now.difference(_lastFpsUpdate).inMilliseconds >= 1000) { fps = _frameCount; _frameCount = 0; _lastFpsUpdate = now; } }); }
+@override void dispose() { _controller.dispose(); super.dispose(); }
 
-Future<void> _pickImage(int index) async { final picked = await picker.pickImage(source: ImageSource.gallery); if (picked != null) { final data = await picked.readAsBytes(); final codec = await ui.instantiateImageCodec(data); final frame = await codec.getNextFrame(); setState(() { if (images.length > index) { images[index] = frame.image; } else { images.add(frame.image); } }); } }
+@override Widget build(BuildContext context) { return Scaffold( backgroundColor: Colors.black, body: Stack( children: [ CustomPaint( size: Size.infinite, painter: BallPainter(balls: balls), ), const Positioned( bottom: 30, left: 20, child: Text( 'Score: 0', style: TextStyle(color: Colors.white, fontSize: 18), ), ) ], ), ); } }
 
-@override void dispose() { _ticker.dispose(); super.dispose(); }
+class Ball { double x, y; double dx, dy; double radius; Color color;
 
-@override Widget build(BuildContext context) { return Scaffold( backgroundColor: Colors.black, body: Stack( children: [ GestureDetector( onTapUp: (_) => _pickImage(images.length), child: CustomPaint( painter: GamePainter(balls: balls, images: images), size: Size.infinite, ), ), Positioned( top: 30, right: 20, child: Text('FPS: $fps', style: const TextStyle(color: Colors.white, fontSize: 16)), ), ], ), ); } }
+Ball({ required this.x, required this.y, required this.dx, required this.dy, required this.radius, required this.color, }); }
 
-class Ball { double x; double y; double vx; double vy; double radius = 30;
+class BallPainter extends CustomPainter { List<Ball> balls; BallPainter({required this.balls});
 
-Ball({required this.x, required this.y, required this.vx, required this.vy});
+@override void paint(Canvas canvas, Size size) { for (var ball in balls) { final paint = Paint()..color = ball.color; canvas.drawCircle(Offset(ball.x, ball.y), ball.radius, paint); } }
 
-void update(Size size) { x += vx; y += vy;
-
-if (x < radius || x > size.width - radius) vx = -vx;
-if (y < radius || y > size.height - radius) vy = -vy;
-
-} }
-
-class GamePainter extends CustomPainter { final List<Ball> balls; final List<ui.Image> images;
-
-GamePainter({required this.balls, required this.images});
-
-@override void paint(Canvas canvas, Size size) { final paint = Paint(); for (int i = 0; i < balls.length; i++) { final ball = balls[i]; if (i < images.length) { canvas.drawImageRect( images[i], Rect.fromLTWH(0, 0, images[i].width.toDouble(), images[i].height.toDouble()), Rect.fromCircle(center: Offset(ball.x, ball.y), radius: ball.radius), paint, ); } else { paint.color = Colors.white; canvas.drawCircle(Offset(ball.x, ball.y), ball.radius, paint); } } }
-
-@override bool shouldRepaint(CustomPainter oldDelegate) => true; }
+@override bool shouldRepaint(covariant BallPainter oldDelegate) => true; }
 
