@@ -1,0 +1,151 @@
+body {
+    padding: 0;
+    margin: 0;
+    overflow: hidden; /* Mobil cihazlarda istenmeyen kaydırmayı engeller */
+    background-color: rgb(25, 25, 25);
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: 'Tomorrow', sans-serif;
+    /* Dokunmatik cihazlarda tıklama gecikmesini azaltmak için */
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
+}
+
+#container {
+    position: absolute;
+    width: 100%; /* Mobil cihazlarda tam genişlik kullan */
+    height: 100%; /* Mobil cihazlarda tam yükseklik kullan */
+    box-shadow: 0 0 2px white;
+    /* responsive.js'deki initWidthHeight fonksiyonu, genişliği gerektiğinde küçültür. */
+}
+
+#canvas {
+    position: absolute;
+    top: 0px;
+    left: 50%; /* Canvas'ı yatayda ortala */
+    transform: translateX(-50%); /* Canvas'ı yatayda ortala */
+}
+
+#Fps {
+    position: absolute;
+    right: 10px; /* Sağ kenara daha yakın */
+    bottom: 10px; /* Alt kenara daha yakın */
+    color: white;
+    display: none; /* Oyun başladığında görünmez */
+    flex-direction: row; /* inline yerine row kullanmak daha doğru */
+    align-items: center;
+    font-size: 0.5em; /* Daha küçük bir font boyutu */
+    z-index: 2; /* Diğer elementlerin üzerinde görünmesini sağla */
+}
+
+#nbrfps {
+    background-color: rgba(100, 100, 100, 0.2);
+    width: 25px; /* Daha küçük boyut */
+    height: 25px; /* Daha küçük boyut */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-left: 10px; /* Daha az boşluk */
+    font-size: 1.2em; /* Yazı boyutunu ayarla */
+}
+
+#checkbowaudio {
+    position: absolute;
+    bottom: 20px; /* Alt kenara daha yakın */
+    right: 15px; /* Sağ kenara daha yakın */
+    color: white;
+    font-size: 1.2em; /* Daha küçük bir ikon */
+    z-index: 3;
+}
+
+#info {
+    position: absolute;
+    bottom: 20px; /* Ekranın altından 20 piksel yukarıda */
+    left: 20px;  /* Ekranın solundan 20 piksel içeride */
+    color: white;
+    font-size: 1.5em;
+    font-weight: bold;
+    z-index: 10; /* Canvas'ın üzerinde görünmesini sağlar */
+}
+#endgame {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    color: white;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    text-align: center;
+    font-size: 2em; /* Oyun bitti yazısını biraz küçült */
+    z-index: 4; /* En üstte görünmesini sağla */
+}
+
+#score {
+    font-size: 0.8em;
+}
+
+#highScoreDisplay { /* Yeni eklenen yüksek skor göstergesi */
+    font-size: 0.6em;
+    margin-top: 10px;
+    color: yellow; /* Yüksek skoru vurgulamak için renk */
+    display: none; /* Başlangıçta gizli */
+}
+
+/* Küçük ekranlar için medya sorguları */
+@media (max-width: 768px) {
+    #Fps {
+        right: 5px;
+        bottom: 5px;
+        font-size: 0.45em;
+    }
+
+    #nbrfps {
+        width: 20px;
+        height: 20px;
+        margin-left: 5px;
+        font-size: 1em;
+    }
+
+    #checkbowaudio {
+        bottom: 10px;
+        right: 10px;
+        font-size: 1.1em;
+    }
+
+    #info {
+        font-size: 1.1em;
+        left: 5px;
+    }
+
+    #endgame {
+        font-size: 1.8em;
+    }
+}
+
+@media (max-width: 480px) {
+    #Fps {
+        font-size: 0.4em;
+    }
+
+    #nbrfps {
+        width: 18px;
+        height: 18px;
+        font-size: 0.9em;
+    }
+
+    #checkbowaudio {
+        font-size: 1em;
+    }
+
+    #info {
+        font-size: 1em;
+    }
+
+    #endgame {
+        font-size: 1.6em;
+    }
+}
