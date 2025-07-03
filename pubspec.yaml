@@ -1,6 +1,6 @@
 name: hello_flutter
 description: A new Flutter project.
-publish_to: 'none'  # Bu paket pub.dev'e yüklenmez
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
@@ -10,9 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  google_mobile_ads: 3.0.0       # 3.1.0 namespace hatası veriyor
-  webview_flutter: ^4.2.2        # Kararlı sürüm
-  webview_flutter_android: ^3.10.0 # SurfaceAndroidWebView için şart
+  google_mobile_ads: 3.0.0
+  webview_flutter: ^4.2.2
+  webview_flutter_android: ^3.10.0
 
 dev_dependencies:
   flutter_test:
@@ -26,8 +26,3 @@ flutter:
     - assets/web/indexpic.html
     - assets/web/style.css
     - assets/web/script.js
-
-# -- Buraya override ekleyebilirsin --
-# dependency_overrides:
-#   google_mobile_ads:
-#     path: ads_override/google_mobile_ads
