@@ -4,13 +4,15 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.8.0 <4.0.0"
+  sdk: ">=3.8.0 <4.0.0" # This seems like a future SDK version, adjust if needed for your Flutter installation
 
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  google_mobile_ads: 3.0.0
+  # Essential for local storage, previously missing
+  shared_preferences: ^2.2.0 # Updated to a common stable version. Check pub.dev for the absolute latest if you wish.
+  google_mobile_ads: ^3.0.0 # Make sure this matches your desired version
   webview_flutter: ^4.2.2
   webview_flutter_android: ^3.10.0
   image_picker: ^0.8.7+5          # Galeriden/kameradan resim seçmek için
@@ -19,7 +21,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^5.0.0 # Make sure this matches your desired version
 
 flutter:
   uses-material-design: true
@@ -28,3 +30,11 @@ flutter:
     - assets/web/indexpic.html
     - assets/web/style.css
     - assets/web/script.js
+    # Add any game-specific assets here, like images for balls or sounds, if you introduce them.
+    # For example:
+    # - assets/images/ball_type_0.png
+    # - assets/images/ball_type_1.png
+    # - assets/audio/soundball.mp3
+    # - assets/audio/soundbigboom.mp3
+    # - assets/audio/soundend.mp3
+    # - assets/audio/soundselect.mp3
