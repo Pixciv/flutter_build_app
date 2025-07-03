@@ -13,6 +13,7 @@ dependencies:
   google_mobile_ads: 3.0.0
   webview_flutter: ^4.2.2
   webview_flutter_android: ^3.10.0
+  permission_handler: ^10.4.0    # İzinleri yönetmek için
 
 dev_dependencies:
   flutter_test:
