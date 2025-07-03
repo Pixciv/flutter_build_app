@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart'; // IMPORTANT: This 
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []); // Hide status and navigation bars
+  
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp, // Prefer portrait for this game
   ]).then((_) {
