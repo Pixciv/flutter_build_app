@@ -24,3 +24,8 @@ flutter:
 # dependency_overrides:
 #   google_mobile_ads:
 #     path: ads_override/google_mobile_ads
+flutter:
+  assets:
+    - assets/web/index.html
+    - assets/web/styles.css
+    - assets/web/script.js
