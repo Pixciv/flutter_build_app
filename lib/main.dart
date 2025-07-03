@@ -1,103 +1,82 @@
-import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(const MaterialApp(
+    home: ImagePickerWithPermission(),
     debugShowCheckedModeBanner: false,
-    home: LocalHtmlWebView(),
   ));
 }
 
-class LocalHtmlWebView extends StatefulWidget {
-  const LocalHtmlWebView({super.key});
+class ImagePickerWithPermission extends StatefulWidget {
+  const ImagePickerWithPermission({Key? key}) : super(key: key);
 
   @override
-  State<LocalHtmlWebView> createState() => _LocalHtmlWebViewState();
+  State<ImagePickerWithPermission> createState() => _ImagePickerWithPermissionState();
 }
 
-class _LocalHtmlWebViewState extends State<LocalHtmlWebView> {
-  late final WebViewController _controller;
+class _ImagePickerWithPermissionState extends State<ImagePickerWithPermission> {
+  XFile? _pickedImage;
+  final ImagePicker _picker = ImagePicker();
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted);
+  Future<bool> _requestPermissions() async {
+    final statuses = await [
+      Permission.camera,
+      Permission.photos, // iOS
+      Permission.storage, // Android < 13
+      if (Platform.isAndroid && (await _androidVersion()) >= 33)
+        Permission.photos, // Android 13+
+    ].request();
 
-    // İzinleri iste
-    _requestPermissions();
+    bool allGranted = statuses.values.every((status) => status.isGranted);
+    return allGranted;
   }
 
-  Future<void> _requestPermissions() async {
-    // Kamera izni
-    var cameraStatus = await Permission.camera.status;
-    if (!cameraStatus.isGranted) {
-      cameraStatus = await Permission.camera.request();
-      if (!cameraStatus.isGranted) {
-        _showPermissionDeniedDialog('Kamera izni reddedildi!');
-      }
-    }
-
-    // Depolama/galeri izni
-    // Android 13+ için READ_MEDIA_IMAGES izni
-    if (await Permission.photos.isDenied) {
-      var photosStatus = await Permission.photos.request();
-      if (!photosStatus.isGranted) {
-        _showPermissionDeniedDialog('Galeri izni reddedildi!');
-      }
-    } else {
-      // Android 13 öncesi için READ_EXTERNAL_STORAGE
-      var storageStatus = await Permission.storage.status;
-      if (!storageStatus.isGranted) {
-        storageStatus = await Permission.storage.request();
-        if (!storageStatus.isGranted) {
-          _showPermissionDeniedDialog('Depolama izni reddedildi!');
-        }
-      }
+  Future<int> _androidVersion() async {
+    try {
+      var sdkInt = await MethodChannel('com.kina.night/device').invokeMethod<int>('getSdkInt');
+      return sdkInt ?? 0;
+    } catch (e) {
+      return 0;
     }
   }
 
-  void _showPermissionDeniedDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('İzin Gerekiyor'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Tamam'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    loadLocalHtml();
-  }
-
-  void loadLocalHtml() async {
-    final fileHtml =
-        await DefaultAssetBundle.of(context).loadString('assets/web/index.html');
-
-    final uri = Uri.dataFromString(
-      fileHtml,
-      mimeType: 'text/html',
-      encoding: Encoding.getByName('utf-8'),
-    );
-
-    _controller.loadRequest(uri);
+  Future<void> _pickImage() async {
+    bool granted = await _requestPermissions();
+    if (!granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Gerekli izinler verilmedi")));
+      return;
+    }
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _pickedImage = pickedFile;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: WebViewWidget(controller: _controller),
+      appBar: AppBar(title: const Text("Galeriden Resim Seç")),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _pickedImage == null
+                ? const Text("Henüz resim seçilmedi")
+                : Image.file(File(_pickedImage!.path), width: 250),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _pickImage,
+              child: const Text("Galeriden Resim Seç"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
