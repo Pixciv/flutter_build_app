@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -36,8 +37,6 @@ class _LocalHtmlWebViewState extends State<LocalHtmlWebView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    // HTML dosyasını yükle
     loadLocalHtml();
   }
 
