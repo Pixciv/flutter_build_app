@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -25,11 +23,6 @@ class _LocalHtmlWebViewState extends State<LocalHtmlWebView> {
   void initState() {
     super.initState();
 
-    // Android için platformu ayarla
-    if (Platform.isAndroid) {
-      WebView.platform = SurfaceAndroidWebView();
-    }
-
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted);
   }
@@ -41,7 +34,7 @@ class _LocalHtmlWebViewState extends State<LocalHtmlWebView> {
   }
 
   void loadLocalHtml() async {
-    final String fileHtml =
+    final fileHtml =
         await DefaultAssetBundle.of(context).loadString('assets/web/index.html');
 
     final uri = Uri.dataFromString(
