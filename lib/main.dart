@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'dart:collection'; // For Queue
 import 'package:flutter/services.dart'; // For SystemChrome
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // IMPORTANT: This package must be in your pubspec.yaml
+
 // If you want to play audio, add audioplayers to your pubspec.yaml
 // import 'package:audioplayers/audioplayers.dart';
 
@@ -24,14 +26,18 @@ class MyApp extends StatelessWidget {
       title: 'Bubble Shooter',
       theme: ThemeData(
         brightness: Brightness.dark, // Dark theme for the game
-        fontFamily: 'Tomorrow', // Ensure you add this font to your assets and pubspec.yaml
+        // If you want to use a custom font like 'Tomorrow', you'll need to add it to your assets
+        // and declare it in your pubspec.yaml under the 'flutter: fonts:' section.
+        // For now, we'll use the default font.
+        // fontFamily: 'Tomorrow',
       ),
       home: const ImageSelectionScreen(), // Start with image selection
     );
   }
 }
 
-// --- Image Selection Screen (Equivalent to your first HTML) ---
+// --- Image Selection Screen ---
+
 class ImageSelectionScreen extends StatefulWidget {
   const ImageSelectionScreen({super.key});
 
@@ -40,26 +46,20 @@ class ImageSelectionScreen extends StatefulWidget {
 }
 
 class _ImageSelectionScreenState extends State<ImageSelectionScreen> {
-  final List<String?> _selectedImagePaths = List.filled(4, null); // Store paths or base64
+  // Using String? to represent a placeholder for an image path or identifier
+  // In a real app, you'd store actual image paths or Base64 strings from a picker.
+  final List<String?> _selectedImagePaths = List.filled(4, null);
   final int _requiredImageCount = 4;
   String _errorMessage = '';
 
-  // In a real app, you'd use image_picker package for selecting images from gallery/camera.
-  // For this example, we'll simulate it or use pre-defined assets.
-  // For simplicity, let's just use placeholder colors instead of actual images for now.
-  // You would replace this with actual image picking logic.
+  // This method simulates picking an image.
+  // In a real application, you would use a package like `image_picker`.
   Future<void> _pickImage(int index) async {
-    // This is a placeholder. In a real app, use image_picker.
-    // final ImagePicker picker = ImagePicker();
-    // final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    // if (image != null) {
-    //   setState(() {
-    //     _selectedImagePaths[index] = image.path; // Store path or convert to base64 if needed
-    //   });
-    // }
     setState(() {
-      // Simulate selecting an image by assigning a placeholder color or asset path
-      _selectedImagePaths[index] = 'color_${index % 4}'; // Placeholder for demonstration
+      // Simulate selecting an image by assigning a placeholder string.
+      // This string will be used as the 'type' (mq) for balls in the game.
+      // You could use actual asset paths here if your images are bundled as assets.
+      _selectedImagePaths[index] = 'ball_type_$index'; // Placeholder for demonstration
       _checkAllImagesLoaded();
     });
   }
@@ -81,6 +81,8 @@ class _ImageSelectionScreenState extends State<ImageSelectionScreen> {
     if (_selectedImagePaths.where((path) => path != null).length == _requiredImageCount) {
       try {
         final prefs = await SharedPreferences.getInstance();
+        // Save the list of selected image identifiers.
+        // If you were using actual image paths, you'd save those.
         await prefs.setStringList('gameImages', _selectedImagePaths.cast<String>());
         if (mounted) {
           Navigator.pushReplacement(
@@ -121,7 +123,7 @@ class _ImageSelectionScreenState extends State<ImageSelectionScreen> {
                 style: TextStyle(
                   fontSize: 1.8 * 16, // Convert em to pixels
                   color: Colors.white,
-                  fontFamily: 'Tomorrow',
+                  // fontFamily: 'Tomorrow', // Uncomment if font is added
                 ),
               ),
             ),
@@ -139,21 +141,23 @@ class _ImageSelectionScreenState extends State<ImageSelectionScreen> {
                       border: Border.all(
                         color: _selectedImagePaths[index] != null ? Colors.blueAccent : Colors.grey,
                         width: 2,
-                        style: BorderStyle.dashed,
+                        // Fix: BorderStyle.dashed does not exist. Use BorderStyle.solid or remove if not desired.
+                        style: BorderStyle.solid,
                       ),
                       borderRadius: BorderRadius.circular(10),
                       color: Colors.white.withOpacity(0.1),
                     ),
                     child: _selectedImagePaths[index] != null
-                        ? Center(
+                        ? const Center(
                           child: Icon(Icons.check_circle, color: Colors.green, size: 50),
-                          // In a real app: Image.file(File(_selectedImagePaths[index]!)),
-                          // Or a small thumbnail of the picked image.
+                          // In a real app, you would load and display the picked image here:
+                          // Image.file(File(_selectedImagePaths[index]!)),
+                          // Or use a small thumbnail of the picked image.
                           )
                         : Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.add_a_photo, color: Colors.grey),
+                              const Icon(Icons.add_a_photo, color: Colors.grey),
                               Text(
                                 '${index + 1}st Photo',
                                 textAlign: TextAlign.center,
@@ -173,7 +177,7 @@ class _ImageSelectionScreenState extends State<ImageSelectionScreen> {
                   backgroundColor: allImagesLoaded ? const Color(0xFF029DFF) : Colors.grey,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-                  textStyle: TextStyle(fontSize: 1.3 * 16, fontFamily: 'Tomorrow'),
+                  textStyle: const TextStyle(fontSize: 1.3 * 16, /*fontFamily: 'Tomorrow'*/),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -197,9 +201,10 @@ class _ImageSelectionScreenState extends State<ImageSelectionScreen> {
   }
 }
 
-// --- Game Screen (Equivalent to your second HTML + JS game logic) ---
+// --- Game Core Logic ---
 
 // Define the colors for the balls (replace with actual image data later)
+// These colors will act as visual types for the balls.
 const List<Color> kBallColors = [
   Colors.red,
   Colors.blue,
@@ -207,13 +212,15 @@ const List<Color> kBallColors = [
   Colors.yellow,
   Colors.purple,
   Colors.orange,
+  // Add more colors if you expect more than 6 unique types
 ];
 
 final List<Color> kFrameColors = [
-  Colors.yellow, // Yellow
-  Colors.cyan,   // Cyan
-  Colors.magenta, // Magenta
-  Colors.green,  // Green
+  Colors.yellow,
+  Colors.cyan,
+  // Fix: Colors.magenta does not exist. Using a direct Color(hex value) or Colors.pink.
+  const Color(0xFFFF00FF), // This is a common hex for magenta
+  Colors.green,
 ];
 
 Color getFrameColor(int imageIndex) {
@@ -287,15 +294,12 @@ class GameConstants {
   static double ballRadius = 0; // Will be calculated based on screen width
   static double ballDiameter = 0;
   static double lineEndY = 0; // Game over line
-  static const double slideAmountPerRow = 0; // Will be calculated
   static const double slideIncrementPerFrame = 2.0;
   static const int noBoomThreshold = 2; // How many shots without a boom before balls slide down
   static const int explosionThreshold = 5; // Minimum balls to pop
   static const double playerSpeed = 10.0;
   static const double collisionDetectionFactor = 0.95; // For ball-to-ball collision
   static const double hexConnectionThreshold = 1.05; // For checking connected balls
-  static const double hexOccupiedThreshold = 0.9; // For checking if hex position is occupied
-
 }
 
 class GameScreen extends StatefulWidget {
@@ -317,27 +321,29 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   bool _checkBoxAudio = true; // Audio toggle
   int _noBoomStreak = 0;
   bool _slidingInProgress = false;
-  int? _lastPoppedImageMq;
+  int? _lastPoppedImageMq; // Stores the 'type' of the last popped ball group
   int _consecutivePops = 0;
   bool _bigBoomEffect = false;
-  double _bigBoomProgress = 0;
+  double _bigBoomProgress = 0; // For big boom animation
   int _frameCount = 0;
   double _lastTime = 0;
   double _fps = 0;
 
   late AnimationController _animationController;
-  // late AudioPlayer _audioPlayer; // For audio
+  // late AudioPlayer _audioPlayer; // Uncomment and initialize if using audioplayers package
 
   @override
   void initState() {
     super.initState();
-    // _audioPlayer = AudioPlayer(); // Initialize audio player
+    // _audioPlayer = AudioPlayer(); // Initialize audio player if needed
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(hours: 1), // Long duration for continuous animation
     )..addListener(() {
         _updateGame();
-        setState(() {}); // Rebuild to paint the new state
+        // Calling setState directly here to ensure repaint on every frame.
+        // In highly optimized games, you might only call setState if game state truly changes.
+        setState(() {});
         _calcFPS();
       });
 
@@ -360,17 +366,10 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       return;
     }
 
-    // In a real app, you'd load actual images here.
-    // For this example, we'll just use the placeholder colors/types.
-    // List<ui.Image> loadedImages = [];
-    // for (String path in gameImagePaths) {
-    //   final ByteData data = await rootBundle.load(path); // Or from file
-    //   final Uint8List bytes = data.buffer.asUint8List();
-    //   final ui.Codec codec = await ui.instantiateImageCodec(bytes);
-    //   final ui.FrameInfo fi = await codec.getNextFrame();
-    //   loadedImages.add(fi.image);
-    // }
-    // GameConstants.gameImages = loadedImages; // Store loaded images globally or pass down
+    // In a real app, you'd load actual images here using gameImagePaths.
+    // For this example, `gameImagePaths` values like 'ball_type_0' will be used
+    // as integer indices for `kBallColors`.
+    // Example: int ballType = int.parse(gameImagePaths[someIndex].split('_').last);
 
     _newGame();
     _animationController.forward(from: 0.0); // Start the animation
@@ -386,18 +385,18 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   @override
   void dispose() {
     _animationController.dispose();
-    // _audioPlayer.dispose();
+    // _audioPlayer.dispose(); // Dispose audio player if used
     super.dispose();
   }
 
   void _calcFPS() {
     _frameCount++;
-    final now = _animationController.lastElapsedDuration?.inMicroseconds.toDouble() ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch.toDouble();
     if (_lastTime == 0) {
       _lastTime = now;
     }
-    final dt = (now - _lastTime) / 1000000.0; // convert microseconds to seconds
-    if (dt >= 1.0) { // Update FPS every second
+    final dt = (now - _lastTime) / 1000.0; // convert milliseconds to seconds
+    if (dt >= 1.0) { // Update FPS roughly every second
       setState(() {
         _fps = _frameCount / dt;
       });
@@ -446,6 +445,15 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       ball.fall();
     }
 
+    // Update big boom animation progress
+    if (_bigBoomEffect) {
+      _bigBoomProgress += 15; // Speed of expansion
+      if (_bigBoomProgress > max(MediaQuery.of(context).size.width, MediaQuery.of(context).size.height) * 0.7) {
+        _bigBoomEffect = false;
+        _bigBoomProgress = 0;
+      }
+    }
+
     // Check for end game conditions
     _checkEndGame();
   }
@@ -472,6 +480,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
         if (distance < collisionThreshold) {
           hitOccurred = true;
           // Find the best hexagonal position around the hit dot
+          // This is a simplified version; in complex cases, you might iterate neighbors.
           Offset bestPosition = _getNearestHexPosition(_player!.x, _player!.y);
 
           _stopPlayerBall(bestPosition.dx, bestPosition.dy);
@@ -486,6 +495,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     _player!.isMoving = false;
     _player!.x = finalX;
     _player!.y = finalY;
+    _player!.trail.clear(); // Clear trail once ball stops
 
     // Add player ball to dots list
     final newDot = Ball(
@@ -516,11 +526,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     double nearestX = GameConstants.ballRadius + targetCol * colWidth + rowOffset;
     double nearestY = GameConstants.ballRadius + targetRow * rowHeight;
 
-    // Further refinement: Find the closest unoccupied hex position if the calculated one is taken
-    // This is more complex and might involve checking neighbors if the initial spot is blocked.
-    // For simplicity, we assume the initial nearest spot is sufficient for now.
-    // You might need an iterative search for the closest *empty* hex.
-    // For now, let's ensure it's within bounds
+    // Ensure position is within canvas bounds
     nearestX = nearestX.clamp(GameConstants.ballRadius, MediaQuery.of(context).size.width - GameConstants.ballRadius);
     nearestY = nearestY.clamp(GameConstants.ballRadius, MediaQuery.of(context).size.height - GameConstants.ballRadius);
 
@@ -581,6 +587,8 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       _consecutivePops++;
     }
 
+    // Use a temporary list to avoid modifying _dots while iterating
+    List<Ball> dotsToRemove = [];
     for (var ballToBoom in poppedBalls) {
       // Create boom particles
       for (int n = 0; n < 10; n++) {
@@ -592,9 +600,10 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
           color: kBallColors[ballToBoom.type], // Use the ball's color
         ));
       }
-      _dots.remove(ballToBoom); // Remove the popped ball
+      dotsToRemove.add(ballToBoom); // Mark for removal
       _score++;
     }
+    _dots.removeWhere((dot) => dotsToRemove.contains(dot)); // Remove all marked balls
 
     _checkIsolatedBalls(); // Check for isolated balls after a pop
 
@@ -602,12 +611,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       _bigBoomEffect = true;
       _score += 10; // Bonus points
       _playAudio('soundbigboom');
-      Future.delayed(const Duration(seconds: 1), () {
-        setState(() {
-          _bigBoomEffect = false;
-          _bigBoomProgress = 0;
-        });
-      });
+      // Animation progress will be handled in _updateGame
     } else {
       _playAudio('soundboom');
     }
@@ -624,7 +628,9 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
       _noBoomStreak = 0;
 
-      Future.delayed(Duration(milliseconds: (slideAmount / GameConstants.slideIncrementPerFrame * 16.666).round()), () {
+      // Estimate duration for slide animation to complete
+      final slideDuration = Duration(milliseconds: (slideAmount / GameConstants.slideIncrementPerFrame * (1000 / 60)).round());
+      Future.delayed(slideDuration, () {
         _slidingInProgress = false;
       });
     }
@@ -652,6 +658,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   void _addNewRow() {
     double currentYForNewRow = GameConstants.ballRadius;
     if (_dots.isNotEmpty) {
+      // Find the Y of the highest existing ball to determine where the new row starts
       currentYForNewRow = _dots.map((dot) => dot.y).reduce(min) - GameConstants.ballDiameter * sqrt(3) / 2;
     }
 
@@ -661,18 +668,21 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     double startX = GameConstants.ballRadius + nextRowOffset;
 
     for (double x = startX; x < MediaQuery.of(context).size.width - GameConstants.ballRadius; x += GameConstants.ballDiameter) {
-      _dots.add(Ball(x: x, y: currentYForNewRow, radius: GameConstants.ballRadius, type: Random().nextInt(kBallColors.length)));
+      // Ensure the generated ball type (index) is within the bounds of kBallColors
+      int randomBallType = Random().nextInt(kBallColors.length);
+      _dots.add(Ball(x: x, y: currentYForNewRow, radius: GameConstants.ballRadius, type: randomBallType));
     }
   }
 
   void _checkIsolatedBalls() {
     for (var dot in _dots) {
-      dot.isIsolated = false;
+      dot.isIsolated = false; // Reset isolation status
     }
 
     Set<Ball> connectedToTop = {};
     Queue<Ball> q = Queue();
 
+    // Start BFS from balls at the very top
     for (var dot in _dots) {
       if (!dot.isBooming && dot.y <= GameConstants.ballRadius * 1.1) {
         q.add(dot);
@@ -695,21 +705,27 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     }
 
     int fallCount = 0;
+    // Use a temporary list to avoid modifying _dots while iterating
+    List<Ball> isolatedBallsToRemove = [];
     for (var dot in _dots) {
       if (!connectedToTop.contains(dot) && !dot.isBooming) {
         dot.isIsolated = true;
         dot.nextY = MediaQuery.of(context).size.height + dot.radius; // Target to fall off screen
         dot.fallSpeed = 7; // Faster fall speed
         fallCount++;
+        isolatedBallsToRemove.add(dot); // Mark for removal after falling off screen
       }
     }
     _score += fallCount; // Add points for falling balls
+    // Note: Actual removal of falling balls happens in _checkEndGame when they are off-screen
   }
 
   void _checkEndGame() {
+    // Remove isolated balls once they are completely off screen
     _dots.removeWhere((dot) => dot.y > MediaQuery.of(context).size.height + dot.radius && dot.isIsolated);
 
     for (var dot in _dots) {
+      // Game ends if any non-isolated ball reaches or crosses the end line
       if (dot.y + dot.radius >= GameConstants.lineEndY && !dot.isIsolated) {
         _gamePlay = false;
         _endGame();
@@ -728,10 +744,10 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       await prefs.setInt('bubbleHighScore', _highScore);
     }
 
-    // Show End Game UI
+    // Show End Game UI using showDialog
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: false, // User must tap button to dismiss
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.black54,
@@ -750,8 +766,8 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
-                _newGame();
+                Navigator.of(context).pop(); // Close the dialog
+                _newGame(); // Start a new game
                 _animationController.forward(from: 0.0); // Restart animation
               },
               child: const Text('PLAY AGAIN', style: TextStyle(color: Colors.blueAccent, fontSize: 20)),
@@ -774,40 +790,44 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       _consecutivePops = 0;
       _bigBoomEffect = false;
       _bigBoomProgress = 0;
+      _fps = 0; // Reset FPS display
     });
 
-    _initGameDimensions(); // Re-calculate dimensions
-    _createInitialBalls();
-    _newPlayer();
+    _initGameDimensions(); // Re-initialize dimensions
+    _createInitialBalls(); // Create initial balls for the new game
+    _newPlayer(); // Create initial player ball for the new game
   }
 
   void _initGameDimensions() {
+    // Ensure this is called after the context is available and size is known
     final Size size = MediaQuery.of(context).size;
     GameConstants.ballRadius = size.width / 16 - 0.01;
     GameConstants.ballDiameter = GameConstants.ballRadius * 2;
     GameConstants.lineEndY = size.height - 1.7 * GameConstants.ballDiameter;
-    // Recalculate slide amount based on new diameter
-    // GameConstants.slideAmountPerRow = GameConstants.ballDiameter * sqrt(3) / 2;
   }
 
   void _createInitialBalls() {
     double currentY = GameConstants.ballRadius;
-    for (int r = 0; r < 6; r++) {
-      double rowXOffset = (r % 2 == 0) ? 0 : GameConstants.ballRadius;
+    for (int r = 0; r < 6; r++) { // Create initial 6 rows of balls
+      double rowXOffset = (r % 2 == 0) ? 0 : GameConstants.ballRadius; // Staggered rows
       for (double x = GameConstants.ballRadius + rowXOffset; x < MediaQuery.of(context).size.width - GameConstants.ballRadius; x += GameConstants.ballDiameter) {
+        // Ensure the generated ball type (index) is within the bounds of kBallColors
+        int randomBallType = Random().nextInt(kBallColors.length);
         _dots.add(Ball(
           x: x,
           y: currentY,
           radius: GameConstants.ballRadius,
-          type: Random().nextInt(kBallColors.length), // Random ball type (color)
+          type: randomBallType, // Random ball type (color)
         ));
       }
-      currentY += GameConstants.ballDiameter * sqrt(3) / 2;
+      currentY += GameConstants.ballDiameter * sqrt(3) / 2; // Move to next row's Y position
     }
   }
 
   void _newPlayer() {
+    // Random ball type for player ball, using an index into kBallColors
     int playerMq = Random().nextInt(kBallColors.length);
+    // If consecutive pops of the same image, give player that image type
     if (_consecutivePops >= 2 && _lastPoppedImageMq != null) {
       playerMq = _lastPoppedImageMq!;
       _consecutivePops = 0;
@@ -826,19 +846,34 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   void _playAudio(String soundName) {
     if (_checkBoxAudio) {
       // In a real Flutter app, use audioplayers package:
-      // You would have pre-loaded AudioCache or AudioPlayer instances.
-      // E.g., AudioCache().play('audio/$soundName.mp3');
-      debugPrint('Playing sound: $soundName');
+      // 1. Add 'audioplayers: ^x.x.x' to your pubspec.yaml.
+      // 2. Add your audio files (e.g., soundball.mp3) to an 'assets/audio/' folder.
+      // 3. Declare them in pubspec.yaml under 'flutter: assets:'.
+      // Example:
+      // flutter:
+      //   assets:
+      //     - assets/audio/
+      // 4. Then uncomment the AudioPlayer import and usage:
+      //    AudioCache().play('audio/$soundName.mp3');
+      debugPrint('Playing sound: $soundName (Audio playback not fully implemented without `audioplayers` package)');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Initialize game dimensions only after the build method gives us the context/size
+    // This is often done once in initState or in the first build cycle.
+    if (GameConstants.ballRadius == 0) { // Check if dimensions are not yet set
+      _initGameDimensions();
+      _createInitialBalls();
+      _newPlayer();
+    }
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 25, 25, 25),
       body: GestureDetector(
         onPanDown: (details) {
-          if (!_player!.isMoving && _gamePlay) {
+          if (_player != null && !_player!.isMoving && _gamePlay) {
             setState(() {
               _isAiming = true;
               _aimTarget = details.localPosition;
@@ -846,18 +881,18 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
           }
         },
         onPanUpdate: (details) {
-          if (_isAiming && !_player!.isMoving && _gamePlay) {
+          if (_player != null && _isAiming && !_player!.isMoving && _gamePlay) {
             setState(() {
               _aimTarget = details.localPosition;
             });
           }
         },
         onPanEnd: (details) {
-          if (_isAiming && !_player!.isMoving && _gamePlay) {
+          if (_player != null && _isAiming && !_player!.isMoving && _gamePlay) {
             if (_aimTarget != null && _player != null) {
               final dx = _player!.x - _aimTarget!.dx;
               final dy = _player!.y - _aimTarget!.dy;
-              _player!.angle = atan2(-dy, -dx);
+              _player!.angle = atan2(-dy, -dx); // Calculate angle
               _player!.isMoving = true;
               _player!.trail.clear(); // Clear trail on new shot
               _playAudio('soundselect'); // Play sound on shoot
@@ -888,7 +923,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
               left: 20,
               child: Text(
                 'Score: $_score',
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Tomorrow'),
+                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, /*fontFamily: 'Tomorrow'*/),
               ),
             ),
             Positioned(
@@ -896,7 +931,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
               left: 20,
               child: Text(
                 'High Score: $_highScore',
-                style: const TextStyle(color: Colors.yellow, fontSize: 18, fontFamily: 'Tomorrow'),
+                style: const TextStyle(color: Colors.yellow, fontSize: 18, /*fontFamily: 'Tomorrow'*/),
               ),
             ),
             Positioned(
@@ -984,8 +1019,8 @@ class GamePainter extends CustomPainter {
       for (int i = 0; i < player!.trail.length; i++) {
         final trailDot = player!.trail[i];
         final ratio = i / player!.trail.length;
-        final alpha = ratio * 0.7;
-        final sizeReduction = (1 - ratio) * 0.7;
+        final alpha = ratio * 0.7; // Trail becomes more transparent
+        final sizeReduction = (1 - ratio) * 0.7; // Trail becomes smaller
 
         final Paint trailPaint = Paint()..color = Colors.white.withOpacity(alpha);
         canvas.drawCircle(trailDot, player!.radius * (1 - sizeReduction), trailPaint);
@@ -1018,47 +1053,32 @@ class GamePainter extends CustomPainter {
 
     // Draw big boom effect
     if (bigBoomEffect) {
-      _drawBlastRings(canvas, size.width / 2, size.height / 2, bigBoomProgress, 10, Colors.white);
-      _drawBlastRings(canvas, size.width / 2, size.height / 2, bigBoomProgress - 30, 15, Colors.yellow);
-      _drawBlastRings(canvas, size.width / 2, size.height / 2, bigBoomProgress - 50, 20, Colors.orange);
-      _drawBlastRings(canvas, size.width / 2, size.height / 2, bigBoomProgress - 100, 30, Colors.red);
-      // Particle effect in Flutter could be done with a list of animated circles/emojis
-      // For simplicity, omitting individual particles for now in this example
+      // These rings expand from the center of the screen
+      final double centerX = size.width / 2;
+      final double centerY = size.height / 2;
+
+      _drawBlastRings(canvas, centerX, centerY, bigBoomProgress, 10, Colors.white);
+      _drawBlastRings(canvas, centerX, centerY, bigBoomProgress - 30, 15, Colors.yellow);
+      _drawBlastRings(canvas, centerX, centerY, bigBoomProgress - 50, 20, Colors.orange);
+      _drawBlastRings(canvas, centerX, centerY, bigBoomProgress - 100, 30, Colors.red);
+      // For particle effect in Flutter, you would typically manage a list of particle objects
+      // and draw them here similar to how booms are handled.
     }
   }
 
   void _drawBlastRings(Canvas canvas, double x, double y, double radius, double strokeWidth, Color color) {
-    if (radius < 0) radius = 0;
+    if (radius < 0) radius = 0; // Ensure radius doesn't go negative
     final Paint paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
-    canvas.drawCircle(Offset(x, y), radius + 30, paint);
+    canvas.drawCircle(Offset(x, y), radius + 30, paint); // Offset radius slightly for visual effect
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    // Only repaint if game state changes
-    return true; // Simple approach, can be optimized by checking specific state variables
+    // Repaint whenever the state changes to update the game graphics.
+    // For a game, this usually means `true` to ensure smooth animation.
+    return true;
   }
-}
-
-// Basic Queue implementation for BFS
-class Queue<T> {
-  final List<T> _elements = [];
-
-  void add(T element) {
-    _elements.add(element);
-  }
-
-  T removeFirst() {
-    if (_elements.isEmpty) {
-      throw StateError('Cannot remove from an empty queue');
-    }
-    return _elements.removeAt(0);
-  }
-
-  bool get isEmpty => _elements.isEmpty;
-  bool get isNotEmpty => _elements.isNotEmpty;
-  int get length => _elements.length;
 }
