@@ -1,224 +1,124 @@
-import 'package:flutter/material.dart';
-
-void main() {
-  runApp(const CalculatorApp());
-}
-
-class CalculatorApp extends StatelessWidget {
-  const CalculatorApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Simple Calculator',
-      theme: ThemeData(
-        primarySwatch: Colors.blueGrey, // Hesap makinesine hoş bir renk tonu verelim
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: const CalculatorHomePage(),
-    );
-  }
-}
-
-class CalculatorHomePage extends StatefulWidget {
-  const CalculatorHomePage({super.key});
-
-  @override
-  State<CalculatorHomePage> createState() => _CalculatorHomePageState();
-}
-
-class _CalculatorHomePageState extends State<CalculatorHomePage> {
-  String _output = "0"; // Ekran çıktısı
-  String _currentInput = ""; // Kullanıcının girdiği mevcut sayı
-  double _num1 = 0.0; // İlk sayı
-  double _num2 = 0.0; // İkinci sayı
-  String _operator = ""; // Seçilen operatör (+, -, *, /)
-  bool _clearOnNextInput = false; // Bir sonraki girişte ekranı temizle
-
-  // Hesap makinesi butonlarına basıldığında çağrılır
-  void _onButtonPressed(String buttonText) {
-    setState(() {
-      if (buttonText == "C") {
-        // Hepsini temizle
-        _output = "0";
-        _currentInput = "";
-        _num1 = 0.0;
-        _num2 = 0.0;
-        _operator = "";
-        _clearOnNextInput = false;
-      } else if (buttonText == "=") {
-        // Hesapla
-        if (_currentInput.isNotEmpty && _operator.isNotEmpty) {
-          _num2 = double.parse(_currentInput);
-          _currentInput = _calculateResult();
-          _output = _currentInput;
-          _operator = ""; // İşlem bitti, operatörü sıfırla
-          _num1 = double.parse(_output); // Sonucu bir sonraki işlem için ilk sayı yap
-          _clearOnNextInput = true; // Sonraki sayı girildiğinde ekranı temizle
-        }
-      } else if (buttonText == "+" || buttonText == "-" || buttonText == "x" || buttonText == "/") {
-        // Operatör seçimi
-        if (_currentInput.isNotEmpty) {
-          _num1 = double.parse(_currentInput);
-          _operator = buttonText;
-          _clearOnNextInput = true; // Yeni operatör seçildiğinde ekranı temizle
-        } else if (_output != "0" && _operator.isEmpty) {
-          // Eğer ekranda bir sonuç varsa ve yeni bir operatör seçiliyorsa
-          _num1 = double.parse(_output);
-          _operator = buttonText;
-          _clearOnNextInput = true;
-        }
-      } else if (buttonText == ".") {
-        // Ondalık nokta
-        if (!_currentInput.contains(".")) {
-          _currentInput += buttonText;
-          _output = _currentInput;
-        }
-      } else {
-        // Sayı girişi
-        if (_clearOnNextInput) {
-          _currentInput = buttonText;
-          _clearOnNextInput = false;
-        } else {
-          _currentInput += buttonText;
-        }
-        _output = _currentInput;
-      }
-
-      // Output'un çok uzun olmamasını sağla ve gereksiz .0'ları temizle
-      if (_output.endsWith(".0")) {
-        _output = _output.substring(0, _output.length - 2);
-      }
-      if (_output.length > 10) {
-        _output = double.parse(_output).toStringAsFixed(7); // Uzun sayıları kısalt
-      }
-    });
-  }
-
-  // Hesaplama mantığı
-  String _calculateResult() {
-    double result = 0.0;
-    switch (_operator) {
-      case "+":
-        result = _num1 + _num2;
-        break;
-      case "-":
-        result = _num1 - _num2;
-        break;
-      case "x":
-        result = _num1 * _num2;
-        break;
-      case "/":
-        if (_num2 != 0) {
-          result = _num1 / _num2;
-        } else {
-          return "Error"; // Sıfıra bölme hatası
-        }
-        break;
-    }
-    return result.toString();
-  }
-
-  // Buton oluşturma widget'ı
-  Widget _buildButton(String buttonText, {Color? backgroundColor, Color? textColor, double flex = 1}) {
-    return Expanded(
-      flex: flex.toInt(),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: backgroundColor ?? Colors.blueGrey[800], // Varsayılan buton rengi
-            foregroundColor: textColor ?? Colors.white, // Yazı rengi
-            padding: const EdgeInsets.all(20),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15), // Yuvarlatılmış köşeler
-            ),
-            textStyle: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          onPressed: () => _onButtonPressed(buttonText),
-          child: Text(buttonText),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Simple Calculator'),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              alignment: Alignment.bottomRight, // Sonucu sağa ve alta hizala
-              color: Colors.blueGrey[900], // Ekran arka planı
-              child: Text(
-                _output,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 60,
-                  fontWeight: FontWeight.w200, // Daha ince font
-                ),
-                maxLines: 1, // Tek satırda kalmasını sağla
-                overflow: TextOverflow.ellipsis, // Taşarsa ... göster
-              ),
-            ),
-          ),
-          const Divider(height: 1, color: Colors.white12), // Ekran ile butonlar arasına ince çizgi
-          Expanded(
-            flex: 5, // Butonlar ekranın daha büyük bir kısmını kaplasın
-            child: Column(
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    _buildButton("C", backgroundColor: Colors.orange[700], textColor: Colors.white, flex: 2), // C butonu daha geniş
-                    _buildButton("/", backgroundColor: Colors.blueGrey[700]),
-                  ],
-                ),
-                Row(
-                  children: <Widget>[
-                    _buildButton("7"),
-                    _buildButton("8"),
-                    _buildButton("9"),
-                    _buildButton("x", backgroundColor: Colors.blueGrey[700]),
-                  ],
-                ),
-                Row(
-                  children: <Widget>[
-                    _buildButton("4"),
-                    _buildButton("5"),
-                    _buildButton("6"),
-                    _buildButton("-", backgroundColor: Colors.blueGrey[700]),
-                  ],
-                ),
-                Row(
-                  children: <Widget>[
-                    _buildButton("1"),
-                    _buildButton("2"),
-                    _buildButton("3"),
-                    _buildButton("+", backgroundColor: Colors.blueGrey[700]),
-                  ],
-                ),
-                Row(
-                  children: <Widget>[
-                    _buildButton("0", flex: 2), // 0 butonu daha geniş
-                    _buildButton("."),
-                    _buildButton("=", backgroundColor: Colors.green[700], textColor: Colors.white), // Eşittir butonu farklı renk
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+‎name: Build APK and Update Dependencies
+‎
+‎on:
+‎  push:
+‎    branches: [ main ]
+‎  workflow_dispatch:
+‎
+‎jobs:
+‎  build:
+‎    runs-on: ubuntu-latest
+‎
+‎    steps:
+‎      - name: Checkout repository
+‎        uses: actions/checkout@v4
+‎
+‎      - name: Setup Flutter
+‎        uses: subosito/flutter-action@v2
+‎        with:
+‎          flutter-version: '3.32.0'
+‎
+‎      - name: Install dependencies
+‎        run: sudo apt-get update && sudo apt-get install -y jq imagemagick zip
+‎
+‎      - name: Read config.json
+‎        run: |
+‎          CONFIG=$(cat config.json)
+‎          echo "APP_NAME=$(echo $CONFIG | jq -r .app_name)" >> $GITHUB_ENV
+‎          echo "PACKAGE_NAME=$(echo $CONFIG | jq -r .package_name)" >> $GITHUB_ENV
+‎          echo "VERSION=$(echo $CONFIG | jq -r .version)" >> $GITHUB_ENV
+‎          echo "VERSION_NAME=$(echo $CONFIG | jq -r .version | cut -d'+' -f1)" >> $GITHUB_ENV
+‎          echo "VERSION_CODE=$(echo $CONFIG | jq -r .version | cut -d'+' -f2)" >> $GITHUB_ENV
+‎
+‎      - name: Run flutter pub outdated and save JSON
+‎        run: flutter pub outdated --json > outdated.json
+‎
+‎      - name: Update pubspec.yaml with latest compatible versions
+‎        run: |
+‎          cat outdated.json | jq -r '.packages[] | select(.upgradable) | "\(.package) \(.latest.version)"' | while read package version; do
+‎            echo "Updating $package to ^$version"
+‎            safe_version=$(echo "^$version" | sed 's/\./\\./g; s/\//\\\//g')
+‎            sed -i "s|^  $package:.*|  $package: $safe_version|" pubspec.yaml
+‎          done
+‎          rm outdated.json
+‎
+‎      - name: Replace {{APP_NAME}} in lib/main.dart
+‎        run: |
+‎          if [ -f config.json ]; then
+‎            APP_NAME=$(jq -r .app_name config.json)
+‎          else
+‎            APP_NAME="MyFlutterApp"
+‎          fi
+‎          sed -i "s/{{APP_NAME}}/${APP_NAME}/g" lib/main.dart
+‎
+‎      - name: Update Android app_name in strings.xml
+‎        run: |
+‎          if [ -f config.json ]; then
+‎            APP_NAME=$(jq -r .app_name config.json)
+‎            sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_NAME}</string>|" android/app/src/main/res/values/strings.xml
+‎          fi
+‎
+‎      - name: Update version in pubspec.yaml
+‎        run: |
+‎          if [ -f config.json ]; then
+‎            VERSION=$(jq -r .version config.json)
+‎            sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
+‎          fi
+‎
+‎      - name: Update android/app/build.gradle.kts with dynamic values and fixes
+‎        run: |
+‎          sed -i "s|namespace = \".*\"|namespace = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
+‎          sed -i "s|applicationId = \".*\"|applicationId = \"${PACKAGE_NAME}\"|" android/app/build.gradle.kts
+‎          sed -i "s|minSdk = .*|minSdk = 23|" android/app/build.gradle.kts
+‎          sed -i "s|targetSdk = .*|targetSdk = 35|" android/app/build.gradle.kts
+‎          sed -i "s|versionCode = .*|versionCode = ${VERSION_CODE}|" android/app/build.gradle.kts
+‎          sed -i "s|versionName = \".*\"|versionName = \"${VERSION_NAME}\"|" android/app/build.gradle.kts
+‎          sed -i "s|ndkVersion = .*|ndkVersion = \"27.0.12077973\"|" android/app/build.gradle.kts
+‎
+‎      - name: Apply icon.png as Android app icon
+‎        run: |
+‎          mkdir -p android/app/src/main/res/mipmap-mdpi android/app/src/main/res/mipmap-hdpi android/app/src/main/res/mipmap-xhdpi android/app/src/main/res/mipmap-xxhdpi android/app/src/main/res/mipmap-xxxhdpi
+‎          convert icon.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+‎          convert icon.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+‎          convert icon.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+‎          convert icon.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+‎          convert icon.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+‎
+‎      - name: Flutter clean
+‎        run: flutter clean
+‎
+‎      - name: Flutter pub get
+‎        run: flutter pub get
+‎
+‎      - name: Build APK (split per ABI)
+‎        run: flutter build apk --debug --split-per-abi
+‎
+‎      - name: Upload APK - armeabi-v7a
+‎        uses: actions/upload-artifact@v4
+‎        with:
+‎          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-armeabi-v7a
+‎          path: build/app/outputs/flutter-apk/app-armeabi-v7a-debug.apk
+‎
+‎      - name: Upload APK - arm64-v8a
+‎        uses: actions/upload-artifact@v4
+‎        with:
+‎          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-arm64-v8a
+‎          path: build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk
+‎
+‎      - name: Upload APK - x86_64
+‎        uses: actions/upload-artifact@v4
+‎        with:
+‎          name: apk-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}-x86_64
+‎          path: build/app/outputs/flutter-apk/app-x86_64-debug.apk
+‎
+‎      - name: Create ZIP of all APKs
+‎        run: |
+‎          cd build/app/outputs/flutter-apk
+‎          zip -r all_apks.zip ./*.apk
+‎
+‎      - name: Upload ZIP artifact
+‎        uses: actions/upload-artifact@v4
+‎        with:
+‎          name: all-apks-${{ env.APP_NAME }}-${{ env.VERSION_NAME }}
+‎          path: build/app/outputs/flutter-apk/all_apks.zip
+‎
